@@ -1,32 +1,39 @@
-import requests
 import typer
 import wikipedia
+from duckduckgo_search import DDGS
+from magentic import prompt
 
-from rich import print
+from rich.console import Console
 
-app = typer.Typer()
+# app = typer.Typer()
+console = Console()
 
 
-@app.command(name="ddg")
 def search_ddg(topic: str):
     """Get search results from duckduckgo.com"""
-    url = f"https://api.duckduckgo.com/?q={topic}&format=json"
-    response = requests.get(url, timeout=10)
-    if response.status_code == 200:
-        data = response.json()
-        if isinstance(data, dict):
-            data.pop("meta")
-        print(data)
-    else:
-        print(f"[red bold]Error:[/] {response.status_code}")
+    ddg = DDGS()
+    results = ddg.news(topic, max_results=3)
+    return results
 
 
-@app.command(name="wiki")
 def search_wiki(topic: str):
     """Get search results from Wikipedia"""
     summary = wikipedia.summary(topic, sentences=3)
-    print(summary)
+    return summary
+
+
+@prompt(
+    "You are a Wizard. Use the appropriate functions to answer: {question}",
+    functions=[search_ddg, search_wiki],
+)
+def ask_wizard(question: str) -> str: ...
+
+
+def main() -> None:
+    question = typer.prompt("What do you want to know?")
+    answer = ask_wizard(question)
+    console.print(answer)
 
 
 if __name__ == "__main__":
-    app()
+    typer.run(main)
